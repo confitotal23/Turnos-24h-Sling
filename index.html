@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full">
+<html lang="es" class="h-full bg-gray-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turnos 24h - 6 Empleados</title>
+    <title>Turnos 24h - 6 Empleados PWA</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -12,61 +12,73 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
+        /* Scrollbar personalizable */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-full flex flex-col antialiased">
+<body class="bg-gray-100 text-gray-800 h-full flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
     <!-- App Root Container -->
-    <div id="app" class="flex flex-col h-full w-full max-w-7xl mx-auto bg-white shadow-xl overflow-hidden">
+    <div id="app" class="flex flex-col h-full w-full max-w-5xl mx-auto bg-white shadow-2xl overflow-hidden md:my-2 md:rounded-2xl border-x border-gray-200">
         
         <!-- Header / Navigation Bar -->
-        <header class="bg-indigo-600 text-white px-4 py-3 flex flex-wrap justify-between items-center gap-3 shadow-md z-10">
-            <div class="flex items-center space-x-2">
-                <div class="bg-white/10 p-2 rounded-lg">
-                    <i data-lucide="calendar-clock" class="w-6 h-6"></i>
+        <header class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md z-20 sticky top-0">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-white/10 p-2 rounded-xl backdrop-blur-md">
+                    <i data-lucide="calendar-clock" class="w-6 h-6 text-indigo-100"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight">Turnos 24h Corretorno</h1>
-                    <p class="text-xs text-indigo-200">Ciclo 1 de guardia / 5 de descanso (8:00h a 8:00h)</p>
+                    <h1 class="font-bold text-base md:text-lg leading-tight">Turnos 24h</h1>
+                    <p class="text-[11px] text-indigo-200">Guardia 8:00h a 8:00h (6 personas)</p>
                 </div>
             </div>
 
-            <!-- Role Switcher & User Profile Simulator -->
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-700/60 p-1.5 rounded-lg flex items-center space-x-2 border border-indigo-500">
-                    <span class="text-xs text-indigo-200 font-medium px-1 hidden sm:inline">Modo:</span>
-                    <select id="role-selector" class="bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1 rounded-md outline-none cursor-pointer">
-                        <option value="empleado">👤 Vista Empleado</option>
-                        <option value="admin">🛠️ Vista Administrador</option>
-                    </select>
-                </div>
+            <!-- Acciones Header: Notificaciones y Selector de Usuario/Rol -->
+            <div class="flex items-center space-x-2 md:space-x-3">
+                
+                <!-- Botón Campana de Notificaciones -->
+                <button onclick="scrollAHistorial()" class="relative p-2 rounded-xl bg-indigo-700/60 hover:bg-indigo-700 text-white border border-indigo-500/50 transition focus:outline-none" title="Notificaciones de Cambios">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-indigo-600 shadow-sm animate-pulse">
+                        0
+                    </span>
+                </button>
 
-                <!-- Selector de Empleado activo para la simulación -->
-                <div id="empleado-selector-container" class="bg-indigo-700/60 p-1.5 rounded-lg flex items-center space-x-2 border border-indigo-500">
-                    <span class="text-xs text-indigo-200 font-medium px-1 hidden sm:inline">Usuario:</span>
-                    <select id="current-user-select" class="bg-indigo-800 text-white text-xs font-semibold px-2.5 py-1 rounded-md outline-none cursor-pointer">
-                        <!-- Generado por JS -->
+                <!-- Selectores de Simulación -->
+                <div class="flex items-center space-x-1 bg-indigo-700/60 p-1 rounded-xl border border-indigo-500/50">
+                    <!-- Selector de Rol -->
+                    <select id="role-selector" class="bg-indigo-800 text-white text-xs font-semibold px-2 py-1.5 rounded-lg outline-none cursor-pointer">
+                        <option value="empleado">👤 Empleado</option>
+                        <option value="admin">🛠️ Admin</option>
+                    </select>
+
+                    <!-- Selector de Usuario activo -->
+                    <select id="current-user-select" class="bg-indigo-800 text-white text-xs font-semibold px-2 py-1.5 rounded-lg outline-none cursor-pointer">
+                        <!-- Cargado por JS -->
                     </select>
                 </div>
             </div>
         </header>
 
         <!-- Main Content Area -->
-        <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50 flex flex-col gap-6" id="main-content">
-            <!-- Renderizado dinámico -->
+        <main class="flex-1 overflow-y-auto p-3 sm:p-5 bg-gray-50 flex flex-col gap-5" id="main-content">
+            <!-- Renderizado dinámico desde JS -->
         </main>
     </div>
 
-    <!-- Custom Notification Modal -->
-    <div id="custom-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+    <!-- Modal Personalizado para Solicitudes y Excepciones -->
+    <div id="custom-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl transform transition-all border border-gray-100 max-h-[90vh] overflow-y-auto">
             <div id="modal-content"></div>
         </div>
     </div>
 
     <!-- JavaScript Application Logic -->
     <script>
-        // --- CONSTANTES Y DATOS INICIALES ---
+        // --- CONFIGURACIÓN DE EMPLEADOS Y ANCLAJE DEL CICLO ---
         const EMPLEADOS = [
             { id: '1', nombre: 'Carlos' },
             { id: '2', nombre: 'Ana' },
@@ -76,40 +88,40 @@
             { id: '6', nombre: 'Elena' }
         ];
 
-        // Fecha base de anclaje inicial para el ciclo de 6 días (ej: 1 de enero de 2026 a las 08:00)
+        // Anclaje base: 1 de Enero de 2026 (Comienza Empleado 1: Carlos)
         const FECHA_INICIO_CICLO = new Date('2026-01-01T08:00:00');
 
-        // --- ESTADO GLOBAL (Guardado en LocalStorage) ---
+        // --- ESTADO GLOBAL LOCAL ---
         let appState = {
-            currentRole: 'empleado', // 'empleado' o 'admin'
-            activeUserId: '1', // Empleado activo por defecto (1: Carlos)
-            currentDate: new Date(), // Mes y año actual visualizado
-            excepciones: JSON.parse(localStorage.getItem('turnos_excepciones') || '{}'), // Formato 'YYYY-MM-DD': empleadoId
-            solicitudes: JSON.parse(localStorage.getItem('turnos_solicitudes') || '[]') // Array de peticiones de cambio por fechas
+            currentRole: 'empleado',
+            activeUserId: '1', // Carlos por defecto
+            currentDate: new Date(),
+            excepciones: JSON.parse(localStorage.getItem('pwa_turnos_excepciones') || '{}'),
+            solicitudes: JSON.parse(localStorage.getItem('pwa_turnos_solicitudes') || '[]')
         };
 
         function guardarEstado() {
-            localStorage.setItem('turnos_excepciones', JSON.stringify(appState.excepciones));
-            localStorage.setItem('turnos_solicitudes', JSON.stringify(appState.solicitudes));
+            localStorage.setItem('pwa_turnos_excepciones', JSON.stringify(appState.excepciones));
+            localStorage.setItem('pwa_turnos_solicitudes', JSON.stringify(appState.solicitudes));
+            actualizarNotificacionesBadge();
         }
 
-        // --- MOTOR DE CÁLCULO DE TURNOS ---
+        // --- CÁLCULO DE GUARDIA DEL DÍA ---
         function obtenerGuardiaDelDia(fecha) {
             const fechaStr = formatearFechaISO(fecha);
 
-            // 1. Verificar si existe excepción manual de administrador para este día
+            // 1. Excepción previa guardada (modificación admin o permuta aprobada)
             if (appState.excepciones[fechaStr]) {
-                const empEncontrado = EMPLEADOS.find(e => e.id === appState.excepciones[fechaStr]);
-                if (empEncontrado) return { empleado: empEncontrado, esExcepcion: true };
+                const emp = EMPLEADOS.find(e => e.id === appState.excepciones[fechaStr]);
+                if (emp) return { empleado: emp, esExcepcion: true };
             }
 
-            // 2. Cálculo matemático de ciclo de 6 días
-            const unDiaEnMs = 1000 * 60 * 60 * 24;
+            // 2. Cálculo algoritmo cíclico de 6 días
+            const unDiaMs = 1000 * 60 * 60 * 24;
             const fConsulta = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
             const fInicio = new Date(FECHA_INICIO_CICLO.getFullYear(), FECHA_INICIO_CICLO.getMonth(), FECHA_INICIO_CICLO.getDate());
             
-            const diffTime = Math.floor((fConsulta - fInicio) / unDiaEnMs);
-            
+            const diffTime = Math.floor((fConsulta - fInicio) / unDiaMs);
             let indice = diffTime % EMPLEADOS.length;
             if (indice < 0) indice += EMPLEADOS.length;
             
@@ -126,442 +138,357 @@
             return [year, month, day].join('-');
         }
 
-        // --- INICIALIZACIÓN DE LA UI ---
+        function formatearFechaLegible(fechaIso) {
+            const [y, m, d] = fechaIso.split('-');
+            const date = new Date(y, m - 1, d);
+            return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        }
+
+        // --- INICIALIZACIÓN Y EVENTOS ---
         document.addEventListener('DOMContentLoaded', () => {
             inicializarSelectores();
+            actualizarNotificacionesBadge();
             renderizarApp();
         });
 
+        function scrollAHistorial() {
+            const el = document.getElementById('seccion-historial');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cambiarMesCalendario(delta) {
+            const current = appState.currentDate;
+            appState.currentDate = new Date(current.getFullYear(), current.getMonth() + delta, 1);
+            renderizarApp();
+        }
+
         function inicializarSelectores() {
-            // Select de Rol
-            const roleSelector = document.getElementById('role-selector');
-            roleSelector.value = appState.currentRole;
-            roleSelector.addEventListener('change', (e) => {
-                appState.currentRole = e.target.value;
-                const userContainer = document.getElementById('empleado-selector-container');
-                if (appState.currentRole === 'admin') {
-                    userContainer.classList.add('hidden');
-                } else {
-                    userContainer.classList.remove('hidden');
-                }
-                renderizarApp();
-            });
-
-            // Select de Usuario activo
+            const roleSelect = document.getElementById('role-selector');
             const userSelect = document.getElementById('current-user-select');
-            userSelect.innerHTML = EMPLEADOS.map(emp => `
-                <option value="${emp.id}" ${emp.id === appState.activeUserId ? 'selected' : ''}>
-                    ${emp.nombre}
-                </option>
-            `).join('');
 
-            userSelect.addEventListener('change', (e) => {
-                appState.activeUserId = e.target.value;
-                renderizarApp();
-            });
+            if (userSelect) {
+                userSelect.innerHTML = EMPLEADOS.map(e => 
+                    `<option value="${e.id}" ${e.id === appState.activeUserId ? 'selected' : ''}>${e.nombre}</option>`
+                ).join('');
+            }
 
-            if (appState.currentRole === 'admin') {
-                document.getElementById('empleado-selector-container').classList.add('hidden');
+            if (roleSelect) {
+                roleSelect.value = appState.currentRole;
+                roleSelect.addEventListener('change', (e) => {
+                    appState.currentRole = e.target.value;
+                    renderizarApp();
+                });
+            }
+
+            if (userSelect) {
+                userSelect.addEventListener('change', (e) => {
+                    appState.activeUserId = e.target.value;
+                    renderizarApp();
+                });
+            }
+        }
+
+        function actualizarNotificacionesBadge() {
+            const badge = document.getElementById('notification-badge');
+            if (!badge) return;
+            const pendientes = appState.solicitudes.filter(s => s.estado === 'pendiente').length;
+            if (pendientes > 0) {
+                badge.textContent = pendientes;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
             }
         }
 
         function renderizarApp() {
-            const mainContent = document.getElementById('main-content');
-            mainContent.innerHTML = '';
+            const container = document.getElementById('main-content');
+            if (!container) return;
+            container.innerHTML = '';
 
-            if (appState.currentRole === 'empleado') {
-                mainContent.appendChild(crearVistaEmpleado());
-            } else {
-                mainContent.appendChild(crearVistaAdmin());
-            }
+            // Renderizar resumen superior, calendario e historial
+            container.appendChild(crearResumenSuperior());
+            container.appendChild(crearCalendario());
+            container.appendChild(crearSeccionHistorial());
 
             lucide.createIcons();
+            actualizarNotificacionesBadge();
         }
 
-        // --- VISTA EMPLEADO ---
-        function crearVistaEmpleado() {
-            const container = document.createElement('div');
-            container.className = 'flex flex-col gap-6';
-
-            const usuarioActivo = EMPLEADOS.find(e => e.id === appState.activeUserId);
-            const hoy = new Date();
-            const guardiaHoyInfo = obtenerGuardiaDelDia(hoy);
-            const esMiGuardiaHoy = guardiaHoyInfo.empleado.id === usuarioActivo.id;
-
-            // Banner superior de Estado de Hoy
-            const bannerDiv = document.createElement('div');
-            bannerDiv.className = `p-5 rounded-2xl border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 ${
-                esMiGuardiaHoy ? 'bg-amber-50 border-amber-200' : 'bg-indigo-50 border-indigo-100'
-            }`;
+        function crearResumenSuperior() {
+            const div = document.createElement('div');
+            div.className = 'bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3';
             
-            bannerDiv.innerHTML = `
-                <div class="flex items-center space-x-4">
-                    <div class="p-3 rounded-xl ${esMiGuardiaHoy ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'}">
-                        <i data-lucide="${esMiGuardiaHoy ? 'shield-alert' : 'user-check'}" class="w-7 h-7"></i>
+            const hoyInfo = obtenerGuardiaDelDia(new Date());
+            const esMio = hoyInfo.empleado.id === appState.activeUserId;
+
+            div.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="p-3 ${esMio ? 'bg-amber-100 text-amber-700' : 'bg-indigo-50 text-indigo-600'} rounded-xl">
+                        <i data-lucide="${esMio ? 'alert-circle' : 'user-check'}" class="w-6 h-6"></i>
                     </div>
                     <div>
-                        <span class="text-xs font-bold uppercase tracking-wider ${esMiGuardiaHoy ? 'text-amber-700' : 'text-indigo-600'}">
-                            Guardia Activa Hoy (8:00 - 8:00)
-                        </span>
-                        <h2 class="text-xl font-bold text-gray-900">
-                            ${esMiGuardiaHoy ? '¡Te toca guardia a ti hoy, ' + usuarioActivo.nombre + '!' : 'Hoy está de guardia: ' + guardiaHoyInfo.empleado.nombre}
+                        <span class="text-[11px] font-bold tracking-wider uppercase text-gray-400 block">Guardia Activa Hoy (24h)</span>
+                        <h2 class="text-base sm:text-lg font-bold text-gray-900">
+                            ${hoyInfo.empleado.nombre} ${esMio ? '<span class="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-bold">¡Eres tú!</span>' : ''}
                         </h2>
-                        <p class="text-xs text-gray-500 mt-0.5">Fecha: ${hoy.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
                     </div>
                 </div>
-                <button onclick="abrirModalSolicitudCambio()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-md hover:shadow-lg transition flex items-center space-x-2">
-                    <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
-                    <span>Intercambiar Fecha de Guardia</span>
-                </button>
+
+                <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                    ${appState.currentRole === 'empleado' ? `
+                        <button onclick="abrirModalSolicitudCambio()" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center space-x-1.5">
+                            <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                            <span>Solicitar Permuta</span>
+                        </button>
+                    ` : `
+                        <span class="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 flex items-center space-x-1">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            <span>Modo Administración Activo</span>
+                        </span>
+                    `}
+                </div>
             `;
-            container.appendChild(bannerDiv);
-
-            // Sección de Solicitudes de Intercambio del Empleado
-            const misSolicitudes = appState.solicitudes.filter(s => s.solicitanteId === usuarioActivo.id || s.compañeroId === usuarioActivo.id);
-            if (misSolicitudes.length > 0) {
-                const solDiv = document.createElement('div');
-                solDiv.className = 'bg-white p-4 rounded-2xl border border-gray-200 shadow-sm';
-                solDiv.innerHTML = `
-                    <h3 class="font-bold text-sm text-gray-700 mb-3 flex items-center space-x-2">
-                        <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i>
-                        <span>Mis Solicitudes de Intercambio de Fechas</span>
-                    </h3>
-                    <div class="space-y-2">
-                        ${misSolicitudes.map(s => {
-                            const solicitante = EMPLEADOS.find(e => e.id === s.solicitanteId)?.nombre;
-                            const compañero = EMPLEADOS.find(e => e.id === s.compañeroId)?.nombre;
-                            let badgeColor = 'bg-amber-100 text-amber-800';
-                            if (s.estado === 'aprobado') badgeColor = 'bg-emerald-100 text-emerald-800';
-                            if (s.estado === 'rechazado') badgeColor = 'bg-rose-100 text-rose-800';
-
-                            return `
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-gray-50 rounded-xl text-xs gap-2">
-                                    <div>
-                                        <div class="font-semibold text-gray-900 flex items-center space-x-1">
-                                            <span>${solicitante} (${s.fechaSolicitante})</span>
-                                            <i data-lucide="arrow-left-right" class="w-3 h-3 text-indigo-500 mx-1"></i>
-                                            <span>${compañero} (${s.fechaCompañero})</span>
-                                        </div>
-                                        <p class="text-gray-500 italic mt-0.5">Motivo: "${s.motivo}"</p>
-                                    </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="px-2.5 py-1 rounded-full font-medium uppercase text-[10px] ${badgeColor}">${s.estado}</span>
-                                        ${s.estado === 'pendiente' && s.solicitanteId === usuarioActivo.id ? `<button onclick="cancelarSolicitud('${s.id}')" class="text-rose-600 hover:text-rose-800 font-medium">Cancelar</button>` : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-                container.appendChild(solDiv);
-            }
-
-            // Calendario Mensual del Empleado
-            container.appendChild(crearComponenteCalendario(false));
-
-            return container;
+            return div;
         }
 
-        // --- VISTA ADMINISTRADOR ---
-        function crearVistaAdmin() {
-            const container = document.createElement('div');
-            container.className = 'flex flex-col gap-6';
+        function crearCalendario() {
+            const card = document.createElement('div');
+            card.className = 'bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4';
 
-            // Panel de solicitudes pendientes de aprobación
-            const solicitudesPendientes = appState.solicitudes.filter(s => s.estado === 'pendiente');
-            
-            const adminPanel = document.createElement('div');
-            adminPanel.className = 'bg-white p-5 rounded-2xl border border-gray-200 shadow-sm';
-            adminPanel.innerHTML = `
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 class="text-base font-bold text-gray-900">Panel de Control del Administrador</h2>
-                        <p class="text-xs text-gray-500">Revisa permutas de fechas o haz clic en un día del calendario para reasignarlo manualmente.</p>
-                    </div>
-                    <div class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-semibold">
-                        ${solicitudesPendientes.length} Intercambio(s) Pendiente(s)
-                    </div>
-                </div>
+            const fecha = appState.currentDate;
+            const anio = fecha.getFullYear();
+            const mes = fecha.getMonth();
 
-                ${solicitudesPendientes.length === 0 ? `
-                    <div class="p-4 bg-gray-50 rounded-xl text-center text-xs text-gray-500">
-                        No hay solicitudes de intercambio de fechas pendientes.
-                    </div>
-                ` : `
-                    <div class="space-y-3">
-                        ${solicitudesPendientes.map(s => {
-                            const solicitante = EMPLEADOS.find(e => e.id === s.solicitanteId)?.nombre;
-                            const compañero = EMPLEADOS.find(e => e.id === s.compañeroId)?.nombre;
-                            return `
-                                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 bg-indigo-50/50 border border-indigo-100 rounded-xl gap-3 text-xs">
-                                    <div>
-                                        <p class="font-semibold text-gray-900 flex items-center space-x-1">
-                                            <span>${solicitante} cede su turno del <strong class="text-indigo-600">${s.fechaSolicitante}</strong></span>
-                                            <i data-lucide="arrow-left-right" class="w-3.5 h-3.5 text-indigo-500 mx-1"></i>
-                                            <span>por el turno de ${compañero} del <strong class="text-indigo-600">${s.fechaCompañero}</strong></span>
-                                        </p>
-                                        <p class="text-gray-500 italic mt-1">Motivo: "${s.motivo}"</p>
-                                    </div>
-                                    <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                                        <button onclick="gestionarSolicitud('${s.id}', 'rechazado')" class="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-semibold rounded-lg transition">Rechazar</button>
-                                        <button onclick="gestionarSolicitud('${s.id}', 'aprobado')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition shadow-sm">Aprobar Permuta</button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `}
-            `;
-            container.appendChild(adminPanel);
+            const nombresMeses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-            // Calendario con permisos de edición para Admin
-            container.appendChild(crearComponenteCalendario(true));
-
-            return container;
-        }
-
-        // --- COMPONENTE DE CALENDARIO MENSUAL ---
-        function crearComponenteCalendario(esAdmin) {
-            const anio = appState.currentDate.getFullYear();
-            const mes = appState.currentDate.getMonth();
-
-            const nombresMeses = [
-                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-            ];
-
-            const wrapper = document.createElement('div');
-            wrapper.className = 'bg-white p-5 rounded-2xl border border-gray-200 shadow-sm';
-
-            // Cabecera mes y controles
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'flex justify-between items-center mb-6';
-            headerDiv.innerHTML = `
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900">${nombresMeses[mes]} ${anio}</h3>
-                    <p class="text-xs text-gray-500">${esAdmin ? '💡 Haz clic en cualquier día para reasignar la guardia manualmente (excepción).' : 'Calendario mensual correlativo (24h de 8:00 a 8:00).'}</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="cambiarMesCalendario(-1)" class="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition">
-                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="cambiarMesCalendario(1)" class="p-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl transition">
-                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            `;
-            wrapper.appendChild(headerDiv);
-
-            // Días de la semana
-            const diasSemanaDiv = document.createElement('div');
-            diasSemanaDiv.className = 'grid grid-cols-7 gap-2 text-center font-semibold text-xs text-gray-400 mb-2 uppercase tracking-wider';
-            const diasNombres = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-            diasNombres.forEach(d => {
-                const span = document.createElement('span');
-                span.textContent = d;
-                diasSemanaDiv.appendChild(span);
-            });
-            wrapper.appendChild(diasSemanaDiv);
-
-            // Cuadrícula de días
-            const gridDiv = document.createElement('div');
-            gridDiv.className = 'grid grid-cols-7 gap-2';
-
+            // Construir días del mes
             const primerDiaMes = new Date(anio, mes, 1);
             const ultimoDiaMes = new Date(anio, mes + 1, 0);
-            
-            let diaSemanaInicio = primerDiaMes.getDay() - 1;
-            if (diaSemanaInicio === -1) diaSemanaInicio = 6;
 
-            // Celdas vacías previas
-            for (let i = 0; i < diaSemanaInicio; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'h-24 bg-gray-50/50 rounded-xl opacity-40';
-                gridDiv.appendChild(emptyCell);
+            let offset = primerDiaMes.getDay() - 1;
+            if (offset === -1) offset = 6;
+
+            let celdas = [];
+            for (let i = 0; i < offset; i++) {
+                celdas.push('<div class="h-20 sm:h-24 bg-gray-50/50 rounded-xl border border-dashed border-gray-100"></div>');
             }
 
-            // Días del mes
             for (let dia = 1; dia <= ultimoDiaMes.getDate(); dia++) {
                 const fechaDia = new Date(anio, mes, dia);
-                const fechaIsoStr = formatearFechaISO(fechaDia);
+                const fechaIso = formatearFechaISO(fechaDia);
                 const infoGuardia = obtenerGuardiaDelDia(fechaDia);
-                const empleadoGuardia = infoGuardia.empleado;
-                const esExcepcion = infoGuardia.esExcepcion;
-
                 const esHoy = new Date().toDateString() === fechaDia.toDateString();
-                const esMiTurno = !esAdmin && empleadoGuardia.id === appState.activeUserId;
+                const esUsuarioActivo = infoGuardia.empleado.id === appState.activeUserId;
 
-                const cell = document.createElement('div');
-                cell.className = `h-24 p-2.5 rounded-xl border flex flex-col justify-between transition relative ${
-                    esHoy ? 'border-indigo-500 ring-2 ring-indigo-100 bg-indigo-50/20' : 'border-gray-200 bg-white'
-                } ${esAdmin ? 'cursor-pointer hover:border-indigo-400 hover:shadow-md' : ''}`;
+                celdas.push(`
+                    <div ${appState.currentRole === 'admin' ? `onclick="abrirModalEditarExcepcion('${fechaIso}')"` : ''} 
+                         class="h-20 sm:h-24 p-1.5 sm:p-2 border rounded-xl flex flex-col justify-between transition ${appState.currentRole === 'admin' ? 'cursor-pointer hover:border-indigo-400 hover:shadow-md' : ''} ${
+                            esHoy ? 'border-indigo-500 bg-indigo-50/20 ring-2 ring-indigo-200' : 'border-gray-200 bg-white'
+                         }">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold ${esHoy ? 'text-indigo-600' : 'text-gray-700'}">${dia}</span>
+                            ${infoGuardia.esExcepcion ? '<span class="w-2 h-2 bg-amber-500 rounded-full" title="Cambio/Excepción"></span>' : ''}
+                        </div>
 
-                if (esAdmin) {
-                    cell.setAttribute('onclick', `abrirModalEditarExcepcion('${fechaIsoStr}')`);
-                }
-
-                cell.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-xs font-bold ${esHoy ? 'text-indigo-600' : 'text-gray-700'}">${dia}</span>
-                        ${esExcepcion ? '<span class="bg-purple-100 text-purple-700 text-[9px] font-bold px-1.5 py-0.5 rounded" title="Modificado por Admin">Excepción</span>' : ''}
+                        <div class="p-1 rounded-lg text-center ${esUsuarioActivo ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-800'}">
+                            <span class="text-[9px] uppercase tracking-wider block opacity-75 font-semibold">Guardia</span>
+                            <span class="text-xs font-bold truncate block">${infoGuardia.empleado.nombre}</span>
+                        </div>
                     </div>
-                    <div class="rounded-lg p-1.5 text-center ${esMiTurno ? 'bg-indigo-600 text-white shadow-sm' : 'bg-gray-50 border border-gray-100 text-gray-800'}">
-                        <span class="text-[10px] uppercase font-bold block opacity-75">Guardia 24h</span>
-                        <span class="text-xs font-semibold truncate block">${empleadoGuardia.nombre}</span>
-                    </div>
-                `;
-                gridDiv.appendChild(cell);
+                `);
             }
 
-            wrapper.appendChild(gridDiv);
-            return wrapper;
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <h2 class="font-bold text-base sm:text-lg text-gray-900">${nombresMeses[mes]} ${anio}</h2>
+                    <div class="flex space-x-1">
+                        <button onclick="cambiarMesCalendario(-1)" class="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition">
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        </button>
+                        <button onclick="cambiarMesCalendario(1)" class="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition">
+                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-7 gap-1.5 sm:gap-2 text-center font-bold text-xs text-gray-400">
+                    ${diasSemana.map(d => `<div>${d}</div>`).join('')}
+                </div>
+
+                <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    ${celdas.join('')}
+                </div>
+            `;
+
+            return card;
         }
 
-        function cambiarMesCalendario(direccion) {
-            appState.currentDate = new Date(appState.currentDate.getFullYear(), appState.currentDate.getMonth() + direccion, 1);
-            renderizarApp();
+        // --- SECCIÓN DE HISTORIAL Y SOLICITUDES DE CAMBIO (AL FINAL) ---
+        function crearSeccionHistorial() {
+            const section = document.createElement('div');
+            section.id = 'seccion-historial';
+            section.className = 'bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col gap-4 mt-2';
+
+            const esAdmin = appState.currentRole === 'admin';
+            const solicitudesFiltradas = esAdmin
+                ? appState.solicitudes
+                : appState.solicitudes.filter(s => s.solicitanteId === appState.activeUserId || s.destinatarioId === appState.activeUserId);
+
+            let listaItems = '';
+            if (solicitudesFiltradas.length === 0) {
+                listaItems = `
+                    <div class="text-center py-6 text-gray-400">
+                        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-xs font-medium">No hay solicitudes ni historial registrados.</p>
+                    </div>
+                `;
+            } else {
+                listaItems = solicitudesFiltradas.map(sol => {
+                    const solicitante = EMPLEADOS.find(e => e.id === sol.solicitanteId);
+                    const destinatario = EMPLEADOS.find(e => e.id === sol.destinatarioId);
+
+                    let badgeEstado = '';
+                    if (sol.estado === 'pendiente') {
+                        badgeEstado = '<span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Pendiente</span>';
+                    } else if (sol.estado === 'aprobada') {
+                        badgeEstado = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Aprobada</span>';
+                    } else {
+                        badgeEstado = '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Rechazada</span>';
+                    }
+
+                    return `
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center space-x-2">
+                                    <span class="font-bold text-gray-900">${solicitante ? solicitante.nombre : 'Usuario'}</span>
+                                    <i data-lucide="arrow-right" class="w-3 h-3 text-gray-400"></i>
+                                    <span class="font-bold text-gray-900">${destinatario ? destinatario.nombre : 'Compañero'}</span>
+                                    ${badgeEstado}
+                                </div>
+                                <p class="text-gray-500 text-[11px]">
+                                    Cambio: guardia del <strong>${formatearFechaLegible(sol.fechaSolicitante)}</strong> por la del <strong>${formatearFechaLegible(sol.fechaDestinatario)}</strong>
+                                </p>
+                            </div>
+
+                            ${esAdmin && sol.estado === 'pendiente' ? `
+                                <div class="flex items-center space-x-2 self-end sm:self-center">
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'aprobada')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition flex items-center space-x-1">
+                                        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                                        <span>Aprobar</span>
+                                    </button>
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'rechazada')" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition flex items-center space-x-1">
+                                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                        <span>Rechazar</span>
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${!esAdmin && sol.estado === 'pendiente' && sol.solicitanteId === appState.activeUserId ? `
+                                <button onclick="cancelarSolicitud('${sol.id}')" class="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition self-end sm:self-center">
+                                    Cancelar
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            section.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="history" class="w-5 h-5 text-indigo-600"></i>
+                        <h3 class="font-bold text-base text-gray-900">Historial y Solicitudes de Cambio</h3>
+                    </div>
+                    <span class="text-xs text-gray-400 font-semibold">${solicitudesFiltradas.length} Registros</span>
+                </div>
+                <div class="flex flex-col gap-2">
+                    ${listaItems}
+                </div>
+            `;
+
+            return section;
         }
 
-        // --- INTERACCIONES Y MODALES ---
-
-        function mostrarModal(htmlContent) {
+        // --- MANEJO DE MODALES Y SOLICITUDES ---
+        function abrirModalSolicitudCambio() {
             const modal = document.getElementById('custom-modal');
             const content = document.getElementById('modal-content');
-            content.innerHTML = htmlContent;
-            modal.classList.remove('hidden');
-            lucide.createIcons();
-        }
+            if (!modal || !content) return;
 
-        function cerrarModal() {
-            document.getElementById('custom-modal').classList.add('hidden');
-        }
+            const companeros = EMPLEADOS.filter(e => e.id !== appState.activeUserId);
 
-        // 1. Solicitud de intercambio por FECHAS (ej. Día 3 por Día 5)
-        function abrirModalSolicitudCambio() {
-            const usuarioActivo = EMPLEADOS.find(e => e.id === appState.activeUserId);
-            const otrosEmpleados = EMPLEADOS.filter(e => e.id !== usuarioActivo.id);
-
-            const html = `
+            content.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
-                    <div>
-                        <h3 class="font-bold text-base text-gray-900">Permutar Fechas de Guardia</h3>
-                        <p class="text-xs text-gray-500">Intercambia tu fecha por la de un compañero para mantener el equilibrio de guardias.</p>
-                    </div>
-                    <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    <h3 class="font-bold text-base text-gray-900">Solicitar Permuta de Turno</h3>
+                    <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <form onsubmit="enviarSolicitudCambio(event)" class="space-y-4 text-xs">
+
+                <form onsubmit="procesarSolicitudCambio(event)" class="flex flex-col gap-3 text-xs">
                     <div>
-                        <label class="block font-semibold text-gray-700 mb-1">Tu fecha de guardia a ceder (${usuarioActivo.nombre}):</label>
-                        <input type="date" id="sol-fecha-solicitante" required onchange="validarDisponibilidadFechaSolicitante(this.value)" class="w-full p-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-500">
-                        <p id="msg-val-solicitante" class="text-[11px] mt-1 font-medium text-gray-400">Selecciona el día que tienes guardia.</p>
+                        <label class="font-semibold text-gray-700 block mb-1">Mi fecha de guardia a ceder:</label>
+                        <input type="date" id="fecha-solicitante" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
                     </div>
 
-                    <div class="border-t border-gray-100 pt-3">
-                        <label class="block font-semibold text-gray-700 mb-1">Compañero con quien intercambias:</label>
-                        <select id="sol-companero" onchange="actualizarMensajeCompanero()" class="w-full p-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-500 bg-white">
-                            ${otrosEmpleados.map(e => `<option value="${e.id}">${e.nombre}</option>`).join('')}
+                    <div>
+                        <label class="font-semibold text-gray-700 block mb-1">Compañero con el que permutar:</label>
+                        <select id="destinatario-id" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
+                            ${companeros.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
                         </select>
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-gray-700 mb-1">Fecha de guardia que tomarás de tu compañero:</label>
-                        <input type="date" id="sol-fecha-companero" required onchange="validarDisponibilidadFechaCompanero(this.value)" class="w-full p-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-500">
-                        <p id="msg-val-companero" class="text-[11px] mt-1 font-medium text-gray-400">Selecciona el día que tu compañero tiene guardia.</p>
+                        <label class="font-semibold text-gray-700 block mb-1">Fecha de guardia del compañero a tomar:</label>
+                        <input type="date" id="fecha-destinatario" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
                     </div>
 
-                    <div>
-                        <label class="block font-semibold text-gray-700 mb-1">Motivo del intercambio:</label>
-                        <textarea id="sol-motivo" rows="2" placeholder="Ej: Cambio por compromiso personal..." required class="w-full p-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-500"></textarea>
-                    </div>
-
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">Cancelar</button>
-                        <button type="submit" id="btn-submit-solicitud" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-sm">Enviar Propuesta de Permuta</button>
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl">Cancelar</button>
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Enviar Solicitud</button>
                     </div>
                 </form>
             `;
-            mostrarModal(html);
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
         }
 
-        function validarDisponibilidadFechaSolicitante(fechaStr) {
-            const msg = document.getElementById('msg-val-solicitante');
-            if (!fechaStr) return;
-            const [y, m, d] = fechaStr.split('-');
-            const fecha = new Date(y, m - 1, d);
-            const guardia = obtenerGuardiaDelDia(fecha).empleado;
-
-            if (guardia.id === appState.activeUserId) {
-                msg.textContent = '✓ Correcto: Tienes guardia este día.';
-                msg.className = 'text-[11px] mt-1 font-medium text-emerald-600';
-            } else {
-                msg.textContent = `✕ Este día está de guardia ${guardia.nombre}, no tú.`;
-                msg.className = 'text-[11px] mt-1 font-medium text-rose-600';
-            }
-        }
-
-        function validarDisponibilidadFechaCompanero(fechaStr) {
-            const msg = document.getElementById('msg-val-companero');
-            const compId = document.getElementById('sol-companero').value;
-            const compNombre = EMPLEADOS.find(e => e.id === compId)?.nombre;
-
-            if (!fechaStr) return;
-            const [y, m, d] = fechaStr.split('-');
-            const fecha = new Date(y, m - 1, d);
-            const guardia = obtenerGuardiaDelDia(fecha).empleado;
-
-            if (guardia.id === compId) {
-                msg.textContent = `✓ Correcto: ${compNombre} tiene guardia este día.`;
-                msg.className = 'text-[11px] mt-1 font-medium text-emerald-600';
-            } else {
-                msg.textContent = `✕ Este día no pertenece a ${compNombre} (está ${guardia.nombre}).`;
-                msg.className = 'text-[11px] mt-1 font-medium text-rose-600';
-            }
-        }
-
-        function actualizarMensajeCompanero() {
-            const inputFechaComp = document.getElementById('sol-fecha-companero');
-            if (inputFechaComp.value) {
-                validarDisponibilidadFechaCompanero(inputFechaComp.value);
-            }
-        }
-
-        function enviarSolicitudCambio(e) {
+        function procesarSolicitudCambio(e) {
             e.preventDefault();
-            const fechaSolicitante = document.getElementById('sol-fecha-solicitante').value;
-            const fechaCompañero = document.getElementById('sol-fecha-companero').value;
-            const compañeroId = document.getElementById('sol-companero').value;
-            const motivo = document.getElementById('sol-motivo').value;
-
-            // Validación estricta final
-            const [y1, m1, d1] = fechaSolicitante.split('-');
-            const guardia1 = obtenerGuardiaDelDia(new Date(y1, m1 - 1, d1)).empleado;
-
-            const [y2, m2, d2] = fechaCompañero.split('-');
-            const guardia2 = obtenerGuardiaDelDia(new Date(y2, m2 - 1, d2)).empleado;
-
-            if (guardia1.id !== appState.activeUserId) {
-                alert('No puedes ceder la fecha ' + fechaSolicitante + ' porque no es tu turno.');
-                return;
-            }
-
-            if (guardia2.id !== compañeroId) {
-                alert('El compañero seleccionado no tiene turno en la fecha ' + fechaCompañero + '.');
-                return;
-            }
+            const fechaSol = document.getElementById('fecha-solicitante').value;
+            const destId = document.getElementById('destinatario-id').value;
+            const fechaDest = document.getElementById('fecha-destinatario').value;
 
             const nuevaSolicitud = {
-                id: 'sol_' + Date.now(),
+                id: Date.now().toString(),
                 solicitanteId: appState.activeUserId,
-                compañeroId: compañeroId,
-                fechaSolicitante: fechaSolicitante,
-                fechaCompañero: fechaCompañero,
-                motivo: motivo,
-                estado: 'pendiente'
+                destinatarioId: destId,
+                fechaSolicitante: fechaSol,
+                fechaDestinatario: fechaDest,
+                estado: 'pendiente',
+                fechaCreacion: new Date().toISOString()
             };
 
-            appState.solicitudes.push(nuevaSolicitud);
+            appState.solicitudes.unshift(nuevaSolicitud);
             guardarEstado();
             cerrarModal();
+            renderizarApp();
+        }
+
+        function gestionarSolicitud(id, nuevoEstado) {
+            const sol = appState.solicitudes.find(s => s.id === id);
+            if (!sol) return;
+
+            sol.estado = nuevoEstado;
+
+            if (nuevoEstado === 'aprobada') {
+                appState.excepciones[sol.fechaSolicitante] = sol.destinatarioId;
+                appState.excepciones[sol.fechaDestinatario] = sol.solicitanteId;
+            }
+
+            guardarEstado();
             renderizarApp();
         }
 
@@ -571,71 +498,63 @@
             renderizarApp();
         }
 
-        // 2. Gestión de permuta por Administrador (Aprobar intercambia ambas fechas)
-        function gestionarSolicitud(id, nuevoEstado) {
-            const solicitud = appState.solicitudes.find(s => s.id === id);
-            if (!solicitud) return;
+        function abrirModalEditarExcepcion(fechaIso) {
+            const modal = document.getElementById('custom-modal');
+            const content = document.getElementById('modal-content');
+            if (!modal || !content) return;
 
-            solicitud.estado = nuevoEstado;
+            const guardiaActual = obtenerGuardiaDelDia(new Date(fechaIso + 'T08:00:00'));
 
-            // Al aprobar la permuta, intercambiamos los empleados de ambas fechas en el objeto de excepciones
-            if (nuevoEstado === 'aprobado') {
-                appState.excepciones[solicitud.fechaSolicitante] = solicitud.compañeroId;
-                appState.excepciones[solicitud.fechaCompañero] = solicitud.solicitanteId;
-            }
-
-            guardarEstado();
-            renderizarApp();
-        }
-
-        // 3. Edición de Excepciones de Turno por Admin (Clic en día)
-        function abrirModalEditarExcepcion(fechaIsoStr) {
-            const guardiaActualInfo = obtenerGuardiaDelDia(new Date(fechaIsoStr + 'T08:00:00'));
-
-            const html = `
+            content.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-bold text-base text-gray-900">Editar Guardia (${fechaIsoStr})</h3>
-                    <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    <h3 class="font-bold text-base text-gray-900">Editar Guardia (${formatearFechaLegible(fechaIso)})</h3>
+                    <button onclick="cerrarModal()" class="text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <div class="space-y-4 text-xs">
-                    <p class="text-gray-600">Asigna manualmente quién cubrirá la guardia de 24h para esta fecha específica, sobrescribiendo el ciclo normal.</p>
-                    
+
+                <div class="flex flex-col gap-3 text-xs">
                     <div>
-                        <label class="block font-semibold text-gray-700 mb-1">Seleccionar Empleado de Guardia:</label>
-                        <select id="admin-nuevo-empleado" class="w-full p-2.5 border border-gray-200 rounded-xl outline-none focus:border-indigo-500 bg-white">
-                            ${EMPLEADOS.map(e => `
-                                <option value="${e.id}" ${e.id === guardiaActualInfo.empleado.id ? 'selected' : ''}>
-                                    ${e.nombre} ${e.id === guardiaActualInfo.empleado.id ? '(Actual)' : ''}
-                                </option>
-                            `).join('')}
+                        <label class="font-semibold text-gray-700 block mb-1">Asignar empleado de guardia:</label>
+                        <select id="emp-excepcion-select" class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
+                            ${EMPLEADOS.map(e => `<option value="${e.id}" ${e.id === guardiaActual.empleado.id ? 'selected' : ''}>${e.nombre}</option>`).join('')}
                         </select>
                     </div>
 
-                    <div class="flex justify-between pt-2">
-                        <button type="button" onclick="eliminarExcepcion('${fechaIsoStr}')" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-semibold rounded-xl transition">Restaurar Ciclo Normal</button>
-                        <div class="space-x-2">
-                            <button type="button" onclick="cerrarModal()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">Cancelar</button>
-                            <button type="button" onclick="guardarExcepcionAdmin('${fechaIsoStr}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-sm">Guardar</button>
+                    <div class="flex justify-between items-center mt-4">
+                        <button onclick="eliminarExcepcion('${fechaIso}')" class="px-3 py-2 bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold rounded-xl">Restablecer Original</button>
+                        <div class="flex space-x-2">
+                            <button onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl">Cancelar</button>
+                            <button onclick="guardarExcepcion('${fechaIso}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Guardar</button>
                         </div>
                     </div>
                 </div>
             `;
-            mostrarModal(html);
+
+            modal.classList.remove('hidden');
+            lucide.createIcons();
         }
 
-        function guardarExcepcionAdmin(fechaIsoStr) {
-            const nuevoEmpId = document.getElementById('admin-nuevo-empleado').value;
-            appState.excepciones[fechaIsoStr] = nuevoEmpId;
+        function guardarExcepcion(fechaIso) {
+            const select = document.getElementById('emp-excepcion-select');
+            if (select) {
+                appState.excepciones[fechaIso] = select.value;
+                guardarEstado();
+                cerrarModal();
+                renderizarApp();
+            }
+        }
+
+        function eliminarExcepcion(fechaIso) {
+            delete appState.excepciones[fechaIso];
             guardarEstado();
             cerrarModal();
             renderizarApp();
         }
 
-        function eliminarExcepcion(fechaIsoStr) {
-            delete appState.excepciones[fechaIsoStr];
-            guardarEstado();
-            cerrarModal();
-            renderizarApp();
+        function cerrarModal() {
+            const modal = document.getElementById('custom-modal');
+            if (modal) modal.classList.add('hidden');
         }
     </script>
 </body>
