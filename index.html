@@ -342,6 +342,7 @@
                 <main class="flex-grow p-3 md:p-6 space-y-6">
                     ${crearCalendario()}
                     ${crearSeccionHistorial()}
+                    ${crearSeccionEstadisticas()}
                 </main>
             `;
 
@@ -531,6 +532,74 @@
                             }).join('')}
                         </div>
                     `}
+                </section>
+            `;
+        }
+
+        function crearSeccionEstadisticas() {
+            const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const ultimoDiaMes = new Date(state.añoActual, state.mesActual + 1, 0).getDate();
+            
+            const conteoMes = {};
+            CONFIG.empleados.forEach(e => conteoMes[e.id] = 0);
+
+            for (let d = 1; d <= ultimoDiaMes; d++) {
+                const mF = String(state.mesActual + 1).padStart(2, '0');
+                const dF = String(d).padStart(2, '0');
+                const fechaStr = `${state.añoActual}-${mF}-${dF}`;
+                const emp = obtenerEmpleadoFecha(fechaStr);
+                if (conteoMes[emp.id] !== undefined) {
+                    conteoMes[emp.id]++;
+                }
+            }
+
+            return `
+                <section id="seccionEstadisticas" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5 text-indigo-600"></i>
+                            <h3 class="font-bold text-slate-900 text-base">Guardias y Horas Trabajadas</h3>
+                        </div>
+                        <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">
+                            ${mesesNombres[state.mesActual]} ${state.añoActual}
+                        </span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-100 uppercase tracking-wider font-semibold">
+                                    <th class="pb-2">Compañero</th>
+                                    <th class="pb-2 text-center">Guardias (24h)</th>
+                                    <th class="pb-2 text-right">Horas Totales</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                ${CONFIG.empleados.map(e => {
+                                    const guardias = conteoMes[e.id] || 0;
+                                    const horas = guardias * 24;
+                                    const esUsuarioActual = e.id === state.usuarioActualId && !state.esAdmin;
+
+                                    return `
+                                        <tr class="${esUsuarioActual ? 'bg-indigo-50/40 font-semibold' : ''}">
+                                            <td class="py-2.5 flex items-center space-x-2">
+                                                <div class="w-6 h-6 rounded-lg ${e.color} text-white flex items-center justify-center font-bold text-[10px]">
+                                                    ${e.iniciales}
+                                                </div>
+                                                <span class="${esUsuarioActual ? 'text-indigo-900 font-bold' : 'text-slate-700'}">${e.nombre}</span>
+                                            </td>
+                                            <td class="py-2.5 text-center font-bold text-slate-800">
+                                                ${guardias} <span class="font-normal text-slate-400">días</span>
+                                            </td>
+                                            <td class="py-2.5 text-right font-bold text-indigo-600">
+                                                ${horas}h
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             `;
         }
