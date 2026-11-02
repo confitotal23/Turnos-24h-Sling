@@ -16,6 +16,58 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Firebase Cloud Firestore SDK for Real-time Cloud Sync -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Configuración y conexión dinámica a la nube
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'turnos-24h-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+        if (firebaseConfig) {
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            // Iniciar sesión anónima o con token para sincronización segura
+            const authInit = typeof __initial_auth_token !== 'undefined' && __initial_auth_token
+                ? signInWithCustomToken(auth, __initial_auth_token)
+                : signInAnonymously(auth);
+
+            authInit.then(() => {
+                window.cloudDB = db;
+                window.cloudAppId = appId;
+
+                // Escuchar solicitudes de permutas en tiempo real para todo el grupo
+                const colSolicitudes = collection(db, 'artifacts', appId, 'public', 'data', 'solicitudes');
+                onSnapshot(colSolicitudes, (snapshot) => {
+                    const lista = [];
+                    snapshot.forEach(docSnap => {
+                        lista.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    // Ordenar por timestamp
+                    lista.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    state.solicitudes = lista;
+                    renderizarApp();
+                }, (err) => console.log('Sincronización solicitudes:', err));
+
+                // Escuchar excepciones / cambios de turno en tiempo real
+                const colExcepciones = collection(db, 'artifacts', appId, 'public', 'data', 'excepciones');
+                onSnapshot(colExcepciones, (snapshot) => {
+                    const mapa = {};
+                    snapshot.forEach(docSnap => {
+                        mapa[docSnap.id] = docSnap.data();
+                    });
+                    state.excepciones = mapa;
+                    renderizarApp();
+                }, (err) => console.log('Sincronización excepciones:', err));
+            });
+        }
+    </script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -159,9 +211,27 @@
             solicitudes: JSON.parse(localStorage.getItem('turnos_solicitudes') || '[]')
         };
 
+        function guardarEstado() {
+            localStorage.setItem('turnos_excepciones', JSON.stringify(state.excepciones));
+            localStorage.setItem('turnos_solicitudes', JSON.stringify(state.solicitudes));
+        }
+
+        // Formateadores auxiliares de fechas
+        function formatearFechaCorta(fechaStr) {
+            if (!fechaStr) return '';
+            const [y, m, d] = fechaStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function formatearFechaLarga(fechaStr) {
+            if (!fechaStr) return '';
+            const [y, m, d] = fechaStr.split('-').map(Number);
+            const fecha = new Date(y, m - 1, d);
+            return fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+        }
+
         // --- 2. CÁLCULO DE CICLO Y TURNOS ---
         function obtenerEmpleadoAsignadoOriginal(fechaStr) {
-            // Split seguro para evitar desfasajes de zona horaria UTC
             const [y, m, d] = fechaStr.split('-').map(Number);
             const fTarget = new Date(y, m - 1, d);
             
@@ -171,14 +241,12 @@
             const diffTime = fTarget.getTime() - fBase.getTime();
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
             
-            // Operación módulo para rotación infinita en ciclo de 6
             let index = diffDays % CONFIG.empleados.length;
             if (index < 0) index += CONFIG.empleados.length;
             return CONFIG.empleados[index];
         }
 
         function obtenerEmpleadoFecha(fechaStr) {
-            // Si hay excepción o permuta aprobada guardada
             if (state.excepciones[fechaStr]) {
                 const empId = state.excepciones[fechaStr].empleadoId;
                 return CONFIG.empleados.find(e => e.id === empId) || obtenerEmpleadoAsignadoOriginal(fechaStr);
@@ -191,14 +259,12 @@
             const app = document.getElementById('app');
             const empActual = CONFIG.empleados.find(e => e.id === state.usuarioActualId);
 
-            // Contar solicitudes pendientes para la campana
             const solicitudesPendientes = state.solicitudes.filter(s => s.estado === 'pendiente').length;
 
             app.innerHTML = `
                 <!-- Header / Barra Superior -->
                 <header class="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md z-20 sticky top-0">
                     <div class="flex items-center space-x-2.5">
-                        <!-- Logo 24h: Fondo azul con letras blancas -->
                         <div class="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-xl shadow-inner border border-blue-400 flex items-center justify-center tracking-tighter select-none">
                             24h
                         </div>
@@ -210,7 +276,6 @@
 
                     <!-- Acciones Header -->
                     <div class="flex items-center space-x-2">
-                        <!-- Icono Campanita con Notificaciones -->
                         <button onclick="scrollAHistorial()" class="relative p-2 rounded-xl bg-indigo-700/50 hover:bg-indigo-700 text-indigo-100 transition" title="Ver Notificaciones">
                             <i data-lucide="bell" class="w-5 h-5"></i>
                             ${solicitudesPendientes > 0 ? `
@@ -220,7 +285,6 @@
                             ` : ''}
                         </button>
 
-                        <!-- Selector Perfil / Usuario -->
                         <div class="flex items-center bg-indigo-700/60 p-1 rounded-xl text-xs">
                             <select id="selectUsuario" onchange="cambiarUsuario(this.value)" class="bg-transparent text-white font-medium pr-2 focus:outline-none cursor-pointer">
                                 ${CONFIG.empleados.map(e => `
@@ -257,7 +321,6 @@
                 `;
             }
 
-            // Calcular próxima guardia para el usuario activo
             const hoy = new Date();
             let proximaGuardia = null;
             for (let i = 0; i < 60; i++) {
@@ -297,7 +360,6 @@
             const primerDiaMes = new Date(state.añoActual, state.mesActual, 1);
             const ultimoDiaMes = new Date(state.añoActual, state.mesActual + 1, 0);
             
-            // Ajuste día inicio (Lunes = 0)
             let diaSemanaInicio = primerDiaMes.getDay() - 1;
             if (diaSemanaInicio === -1) diaSemanaInicio = 6;
 
@@ -305,12 +367,10 @@
             const hoyStr = new Date().toISOString().split('T')[0];
 
             let celdas = [];
-            // Celdas vacías del mes anterior
             for (let i = 0; i < diaSemanaInicio; i++) {
                 celdas.push(`<div class="bg-slate-50/50 border border-slate-100 rounded-xl min-h-[75px] md:min-h-[90px]"></div>`);
             }
 
-            // Días del mes
             for (let dia = 1; dia <= totalDias; dia++) {
                 const mesFormateado = String(state.mesActual + 1).padStart(2, '0');
                 const diaFormateado = String(dia).padStart(2, '0');
@@ -325,7 +385,6 @@
                     <div onclick="${state.esAdmin ? `abrirModalEditarExcepcion('${fechaStr}')` : ''}" 
                          class="border ${esHoy ? 'border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50/30' : 'border-slate-200 bg-white'} ${esMiGuardia ? 'ring-2 ring-blue-400' : ''} rounded-xl p-1.5 md:p-2.5 flex flex-col justify-between min-h-[75px] md:min-h-[95px] transition hover:shadow-md relative group ${state.esAdmin ? 'cursor-pointer' : ''}">
                         
-                        <!-- Encabezado Celda Día -->
                         <div class="flex items-center justify-between">
                             <span class="text-xs md:text-sm font-bold ${esHoy ? 'bg-indigo-600 text-white w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center' : 'text-slate-700'}">
                                 ${dia}
@@ -333,7 +392,6 @@
                             ${tieneExcepcion ? `<span class="text-[9px] bg-amber-100 text-amber-700 px-1 rounded font-semibold" title="Ajustado">Mod.</span>` : ''}
                         </div>
 
-                        <!-- Badge Empleado Asignado -->
                         <div class="mt-1">
                             <div class="${empAsignado.color} text-white text-[10px] md:text-xs font-semibold px-1.5 py-1 rounded-lg flex items-center justify-between shadow-xs truncate">
                                 <span class="truncate">${empAsignado.nombre.split(' ')[0]}</span>
@@ -346,7 +404,6 @@
 
             return `
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <!-- Control Navegación Meses -->
                     <div class="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
                         <button onclick="cambiarMesCalendario(-1)" class="p-2 rounded-xl hover:bg-slate-200 text-slate-600 transition">
                             <i data-lucide="chevron-left" class="w-5 h-5"></i>
@@ -359,15 +416,12 @@
                         </button>
                     </div>
 
-                    <!-- Rejilla Calendario -->
                     <div class="p-2 md:p-4">
-                        <!-- Cabecera Días de la Semana -->
                         <div class="grid grid-cols-7 gap-1 md:gap-2 mb-2 text-center">
                             ${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `
                                 <div class="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider py-1">${d}</div>
                             `).join('')}
                         </div>
-                        <!-- Celdas -->
                         <div class="grid grid-cols-7 gap-1 md:gap-2">
                             ${celdas.join('')}
                         </div>
@@ -408,7 +462,6 @@
                                                 <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 text-slate-400"></i>
                                                 <span class="font-bold text-slate-800">${empDestino ? empDestino.nombre : 'Usuario'}</span>
                                                 
-                                                <!-- Badge Estado -->
                                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                                     sol.estado === 'pendiente' ? 'bg-amber-100 text-amber-800' :
                                                     sol.estado === 'aprobada' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
@@ -423,7 +476,6 @@
                                             ${sol.motivo ? `<p class="text-slate-400 italic text-[11px]">"${sol.motivo}"</p>` : ''}
                                         </div>
 
-                                        <!-- Acciones de Gestión -->
                                         ${sol.estado === 'pendiente' ? `
                                             <div class="flex items-center space-x-2 self-end md:self-center">
                                                 ${state.esAdmin || sol.destinoId === state.usuarioActualId ? `
@@ -457,11 +509,9 @@
 
             if (!boxError || !btnEnviar || !textoError) return;
 
-            // Resetear estado inicial
             boxError.classList.add('hidden');
             btnEnviar.disabled = false;
 
-            // 1. Validar si la Fecha A pertenece al solicitante
             if (inputFechaA) {
                 const empFechaA = obtenerEmpleadoFecha(inputFechaA);
                 if (empFechaA.id !== state.usuarioActualId) {
@@ -472,7 +522,6 @@
                 }
             }
 
-            // 2. Validar si la Fecha B pertenece al compañero seleccionado
             if (inputFechaB && empDestinoId) {
                 const empFechaB = obtenerEmpleadoFecha(inputFechaB);
                 if (empFechaB.id !== empDestinoId) {
@@ -509,6 +558,18 @@
             renderizarApp();
         }
 
+        function scrollAHistorial() {
+            const el = document.getElementById('seccionHistorial');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function cerrarModal(idModal) {
+            const modal = document.getElementById(idModal);
+            if (modal) modal.classList.add('hidden');
+        }
+
         function abrirModalSolicitudCambio() {
             const select = document.getElementById('empleadoDestino');
             select.innerHTML = CONFIG.empleados
@@ -527,9 +588,23 @@
             if (btnEnviar) btnEnviar.disabled = false;
 
             document.getElementById('modalSolicitud').classList.remove('hidden');
-            
-            // Ejecutar validación inicial
             setTimeout(validarPermutaEnTiempoReal, 50);
+        }
+
+        function abrirModalEditarExcepcion(fechaStr) {
+            const empActualFecha = obtenerEmpleadoFecha(fechaStr);
+            document.getElementById('fechaExcepcion').value = fechaStr;
+            document.getElementById('subtituloExcepcion').innerText = `Fecha: ${formatearFechaCorta(fechaStr)}`;
+            
+            const select = document.getElementById('selectEmpleadoExcepcion');
+            select.innerHTML = CONFIG.empleados.map(e => `
+                <option value="${e.id}" ${e.id === empActualFecha.id ? 'selected' : ''}>${e.nombre}</option>
+            `).join('');
+
+            const excExistente = state.excepciones[fechaStr];
+            document.getElementById('notaExcepcion').value = excExistente ? (excExistente.motivo || '') : '';
+
+            document.getElementById('modalExcepcion').classList.remove('hidden');
         }
 
         function procesarSolicitudCambio(e) {
@@ -539,8 +614,8 @@
             const fechaB = document.getElementById('fechaDestino').value;
             const motivo = document.getElementById('motivoSolicitud').value;
 
+            const solId = 'sol_' + Date.now();
             const nuevaSolicitud = {
-                id: 'sol_' + Date.now(),
                 solicitanteId: state.usuarioActualId,
                 destinoId,
                 fechaSolicitante: fechaA,
@@ -550,46 +625,58 @@
                 timestamp: new Date().toISOString()
             };
 
-            state.solicitudes.unshift(nuevaSolicitud);
-            guardarEstado();
+            if (window.cloudDB && window.cloudAppId) {
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, setDoc }) => {
+                    const docRef = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'solicitudes', solId);
+                    setDoc(docRef, nuevaSolicitud);
+                });
+            } else {
+                state.solicitudes.unshift({ id: solId, ...nuevaSolicitud });
+                guardarEstado();
+                renderizarApp();
+            }
+
             cerrarModal('modalSolicitud');
-            renderizarApp();
         }
 
         function gestionarSolicitud(solId, nuevoEstado) {
             const sol = state.solicitudes.find(s => s.id === solId);
             if (!sol) return;
 
-            sol.estado = nuevoEstado;
+            if (window.cloudDB && window.cloudAppId) {
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, updateDoc, setDoc }) => {
+                    const solRef = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'solicitudes', solId);
+                    updateDoc(solRef, { estado: nuevoEstado });
 
-            // Si se aprueba, intercambiar las dos fechas en las excepciones
-            if (nuevoEstado === 'aprobada') {
-                state.excepciones[sol.fechaSolicitante] = { empleadoId: sol.destinoId, motivo: 'Permuta aprobada' };
-                state.excepciones[sol.fechaDestino] = { empleadoId: sol.solicitanteId, motivo: 'Permuta aprobada' };
+                    if (nuevoEstado === 'aprobada') {
+                        const exc1Ref = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'excepciones', sol.fechaSolicitante);
+                        const exc2Ref = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'excepciones', sol.fechaDestino);
+                        setDoc(exc1Ref, { empleadoId: sol.destinoId, motivo: 'Permuta aprobada' });
+                        setDoc(exc2Ref, { empleadoId: sol.solicitanteId, motivo: 'Permuta aprobada' });
+                    }
+                });
+            } else {
+                sol.estado = nuevoEstado;
+                if (nuevoEstado === 'aprobada') {
+                    state.excepciones[sol.fechaSolicitante] = { empleadoId: sol.destinoId, motivo: 'Permuta aprobada' };
+                    state.excepciones[sol.fechaDestino] = { empleadoId: sol.solicitanteId, motivo: 'Permuta aprobada' };
+                }
+                guardarEstado();
+                renderizarApp();
             }
-
-            guardarEstado();
-            renderizarApp();
         }
 
         function cancelarSolicitud(solId) {
-            state.solicitudes = state.solicitudes.filter(s => s.id !== solId);
-            guardarEstado();
-            renderizarApp();
-        }
-
-        function abrirModalEditarExcepcion(fechaStr) {
-            document.getElementById('fechaExcepcion').value = fechaStr;
-            document.getElementById('subtituloExcepcion').innerText = `Ajustar turno para el ${formatearFechaLarga(fechaStr)}`;
-
-            const empActual = obtenerEmpleadoFecha(fechaStr);
-            const select = document.getElementById('selectEmpleadoExcepcion');
-            select.innerHTML = CONFIG.empleados.map(e => `
-                <option value="${e.id}" ${e.id === empActual.id ? 'selected' : ''}>${e.nombre}</option>
-            `).join('');
-
-            document.getElementById('notaExcepcion').value = state.excepciones[fechaStr] ? (state.excepciones[fechaStr].motivo || '') : '';
-            document.getElementById('modalExcepcion').classList.remove('hidden');
+            if (window.cloudDB && window.cloudAppId) {
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, deleteDoc }) => {
+                    const solRef = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'solicitudes', solId);
+                    deleteDoc(solRef);
+                });
+            } else {
+                state.solicitudes = state.solicitudes.filter(s => s.id !== solId);
+                guardarEstado();
+                renderizarApp();
+            }
         }
 
         function guardarExcepcion(e) {
@@ -598,51 +685,36 @@
             const empId = parseInt(document.getElementById('selectEmpleadoExcepcion').value);
             const motivo = document.getElementById('notaExcepcion').value;
 
-            state.excepciones[fechaStr] = { empleadoId: empId, motivo };
-            guardarEstado();
+            if (window.cloudDB && window.cloudAppId) {
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, setDoc }) => {
+                    const excRef = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'excepciones', fechaStr);
+                    setDoc(excRef, { empleadoId: empId, motivo });
+                });
+            } else {
+                state.excepciones[fechaStr] = { empleadoId: empId, motivo };
+                guardarEstado();
+                renderizarApp();
+            }
             cerrarModal('modalExcepcion');
-            renderizarApp();
         }
 
         function eliminarExcepcion() {
             const fechaStr = document.getElementById('fechaExcepcion').value;
-            delete state.excepciones[fechaStr];
-            guardarEstado();
+            if (window.cloudDB && window.cloudAppId) {
+                import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js").then(({ doc, deleteDoc }) => {
+                    const excRef = doc(window.cloudDB, 'artifacts', window.cloudAppId, 'public', 'data', 'excepciones', fechaStr);
+                    deleteDoc(excRef);
+                });
+            } else {
+                delete state.excepciones[fechaStr];
+                guardarEstado();
+                renderizarApp();
+            }
             cerrarModal('modalExcepcion');
-            renderizarApp();
         }
 
-        function cerrarModal(idModal) {
-            document.getElementById(idModal).classList.add('hidden');
-        }
-
-        function scrollAHistorial() {
-            const el = document.getElementById('seccionHistorial');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        function guardarEstado() {
-            localStorage.setItem('turnos_excepciones', JSON.stringify(state.excepciones));
-            localStorage.setItem('turnos_solicitudes', JSON.stringify(state.solicitudes));
-        }
-
-        // --- UTILITIES ---
-        function formatearFechaCorta(fechaStr) {
-            if (!fechaStr) return '';
-            const [y, m, d] = fechaStr.split('-');
-            return `${d}/${m}/${y}`;
-        }
-
-        function formatearFechaLarga(fechaStr) {
-            if (!fechaStr) return '';
-            const d = new Date(fechaStr + 'T00:00:00');
-            return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-        }
-
-        // INICIALIZACIÓN APP
-        window.onload = function() {
-            renderizarApp();
-        };
+        // Inicializar renderizado al cargar
+        window.addEventListener('DOMContentLoaded', renderizarApp);
     </script>
 </body>
 </html>
