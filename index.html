@@ -427,26 +427,32 @@
                 </div>
 
                 <form onsubmit="procesarSolicitudCambio(event)" class="flex flex-col gap-3 text-xs">
+                    <!-- Alerta de validación en tiempo real -->
+                    <div id="validation-alert" class="hidden p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl font-medium flex items-center space-x-2">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                        <span id="validation-msg"></span>
+                    </div>
+
                     <div>
                         <label class="font-semibold text-gray-700 block mb-1">Mi fecha de guardia a ceder:</label>
-                        <input type="date" id="fecha-solicitante" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
+                        <input type="date" id="fecha-solicitante" onchange="validarFechasCambio()" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
                     </div>
 
                     <div>
                         <label class="font-semibold text-gray-700 block mb-1">Compañero con el que permutar:</label>
-                        <select id="destinatario-id" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
+                        <select id="destinatario-id" onchange="validarFechasCambio()" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
                             ${companeros.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
                         </select>
                     </div>
 
                     <div>
                         <label class="font-semibold text-gray-700 block mb-1">Fecha de guardia del compañero a tomar:</label>
-                        <input type="date" id="fecha-destinatario" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
+                        <input type="date" id="fecha-destinatario" onchange="validarFechasCambio()" required class="w-full p-2 border rounded-xl outline-none focus:border-indigo-500">
                     </div>
 
                     <div class="flex justify-end space-x-2 mt-4">
                         <button type="button" onclick="cerrarModal()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl">Cancelar</button>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Enviar Solicitud</button>
+                        <button type="submit" id="btn-submit-solicitud" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl">Enviar Solicitud</button>
                     </div>
                 </form>
             `;
@@ -455,8 +461,63 @@
             lucide.createIcons();
         }
 
+        function validarFechasCambio() {
+            const fechaSolInput = document.getElementById('fecha-solicitante');
+            const destSelect = document.getElementById('destinatario-id');
+            const fechaDestInput = document.getElementById('fecha-destinatario');
+            const alertBox = document.getElementById('validation-alert');
+            const msgSpan = document.getElementById('validation-msg');
+            const submitBtn = document.getElementById('btn-submit-solicitud');
+
+            if (!fechaSolInput || !destSelect || !fechaDestInput || !alertBox || !submitBtn) return true;
+
+            const valSol = fechaSolInput.value;
+            const destId = destSelect.value;
+            const valDest = fechaDestInput.value;
+
+            // Limpiar alertas
+            alertBox.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // 1. Validar si la primera fecha es realmente guardia del solicitante
+            if (valSol) {
+                const [y1, m1, d1] = valSol.split('-');
+                const fecha1 = new Date(y1, m1 - 1, d1, 8, 0, 0);
+                const guardia1 = obtenerGuardiaDelDia(fecha1);
+                if (guardia1.empleado.id !== appState.activeUserId) {
+                    alertBox.classList.remove('hidden');
+                    msgSpan.textContent = `En la fecha ${formatearFechaLegible(valSol)} la guardia le toca a ${guardia1.empleado.nombre}, no a ti.`;
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    return false;
+                }
+            }
+
+            // 2. Validar si la segunda fecha le toca al compañero elegido
+            if (valDest && destId) {
+                const [y2, m2, d2] = valDest.split('-');
+                const fecha2 = new Date(y2, m2 - 1, d2, 8, 0, 0);
+                const guardia2 = obtenerGuardiaDelDia(fecha2);
+                const empDest = EMPLEADOS.find(e => e.id === destId);
+
+                if (guardia2.empleado.id !== destId) {
+                    alertBox.classList.remove('hidden');
+                    msgSpan.textContent = `En la fecha ${formatearFechaLegible(valDest)} la guardia no le toca a ${empDest ? empDest.nombre : 'tu compañero'}, le toca a ${guardia2.empleado.nombre}.`;
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         function procesarSolicitudCambio(e) {
             e.preventDefault();
+            
+            if (!validarFechasCambio()) return;
+
             const fechaSol = document.getElementById('fecha-solicitante').value;
             const destId = document.getElementById('destinatario-id').value;
             const fechaDest = document.getElementById('fecha-destinatario').value;
