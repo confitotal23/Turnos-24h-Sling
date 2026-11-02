@@ -17,13 +17,12 @@
     <!-- Font Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Firebase Cloud Firestore SDK for Real-time Cloud Sync -->
+    <!-- Firebase SDK (Sincronización Cloud) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Configuración y conexión dinámica a la nube
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'turnos-24h-app';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
 
@@ -32,7 +31,6 @@
             const auth = getAuth(app);
             const db = getFirestore(app);
 
-            // Iniciar sesión anónima o con token para sincronización segura
             const authInit = typeof __initial_auth_token !== 'undefined' && __initial_auth_token
                 ? signInWithCustomToken(auth, __initial_auth_token)
                 : signInAnonymously(auth);
@@ -41,20 +39,17 @@
                 window.cloudDB = db;
                 window.cloudAppId = appId;
 
-                // Escuchar solicitudes de permutas en tiempo real para todo el grupo
                 const colSolicitudes = collection(db, 'artifacts', appId, 'public', 'data', 'solicitudes');
                 onSnapshot(colSolicitudes, (snapshot) => {
                     const lista = [];
                     snapshot.forEach(docSnap => {
                         lista.push({ id: docSnap.id, ...docSnap.data() });
                     });
-                    // Ordenar por timestamp
                     lista.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     state.solicitudes = lista;
                     renderizarApp();
                 }, (err) => console.log('Sincronización solicitudes:', err));
 
-                // Escuchar excepciones / cambios de turno en tiempo real
                 const colExcepciones = collection(db, 'artifacts', appId, 'public', 'data', 'excepciones');
                 onSnapshot(colExcepciones, (snapshot) => {
                     const mapa = {};
@@ -211,10 +206,54 @@
             solicitudes: JSON.parse(localStorage.getItem('turnos_solicitudes') || '[]')
         };
 
+        // --- SISTEMA DE SINCRONIZACIÓN NUBE SIN CONFIGURACIÓN (RELAY REMOTO) ---
+        const RELAY_ENDPOINT = 'https://keyvalue.immanuel.co/api/KeyVal/AccessKey/turnos24h_equipo_guardias';
+
+        async function sincronizarDesdeNube() {
+            try {
+                const resEx = await fetch(`${RELAY_ENDPOINT}/excepciones`);
+                if (resEx.ok) {
+                    const dataEx = await resEx.json();
+                    if (dataEx) state.excepciones = JSON.parse(dataEx);
+                }
+                const resSol = await fetch(`${RELAY_ENDPOINT}/solicitudes`);
+                if (resSol.ok) {
+                    const dataSol = await resSol.json();
+                    if (dataSol) state.solicitudes = JSON.parse(dataSol);
+                }
+                guardarEstadoLocal();
+                renderizarApp();
+            } catch (e) {
+                console.log('Modo sin conexión activo');
+            }
+        }
+
+        async function enviarANube(clave, datos) {
+            try {
+                await fetch(`${RELAY_ENDPOINT}/${clave}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(JSON.stringify(datos))
+                });
+            } catch (e) {
+                console.error('Error al enviar a la nube:', e);
+            }
+        }
+
         function guardarEstado() {
+            guardarEstadoLocal();
+            enviarANube('excepciones', state.excepciones);
+            enviarANube('solicitudes', state.solicitudes);
+        }
+
+        function guardarEstadoLocal() {
             localStorage.setItem('turnos_excepciones', JSON.stringify(state.excepciones));
             localStorage.setItem('turnos_solicitudes', JSON.stringify(state.solicitudes));
         }
+
+        // Auto-refresco en segundo plano cada 5 segundos para mantener móvil y tablet 100% sincronizados
+        setInterval(sincronizarDesdeNube, 5000);
+        sincronizarDesdeNube();
 
         // Formateadores auxiliares de fechas
         function formatearFechaCorta(fechaStr) {
