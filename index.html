@@ -327,10 +327,11 @@
                 const tieneExcepcion = !!state.excepciones[fechaStr];
 
                 const esAdmin = state.usuarioActualId === 'admin';
+                const esUsuarioSeleccionado = emp.id === state.usuarioActualId;
 
                 grid.innerHTML += `
                     <div onclick="${esAdmin ? `abrirModalEditarExcepcion('${fechaStr}')` : ''}" 
-                         class="h-16 sm:h-20 p-1 rounded-xl border flex flex-col justify-between transition relative ${esHoy ? 'ring-2 ring-blue-600' : ''} ${emp.color} ${esAdmin ? 'cursor-pointer hover:opacity-80' : ''}">
+                         class="h-16 sm:h-20 p-1 rounded-xl border flex flex-col justify-between transition relative ${esHoy ? 'ring-2 ring-blue-600' : ''} ${esUsuarioSeleccionado ? 'ring-2 ring-blue-500 font-bold scale-[1.02] shadow-sm' : ''} ${emp.color} ${esAdmin ? 'cursor-pointer hover:opacity-80' : ''}">
                         <div class="flex justify-between items-center text-[10px] sm:text-xs font-bold">
                             <span>${dia}</span>
                             ${tieneExcepcion ? '<span class="text-amber-600 font-extrabold">*</span>' : ''}
@@ -345,7 +346,7 @@
 
         function calcularGuardiasMes(anio, mes) {
             const stats = {};
-            CONFIG.empleados.forEach(e => stats[e.id] = 0);
+            CONFIG.empleados.forEach(emp => stats[emp.id] = 0);
 
             const totalDias = new Date(anio, mes + 1, 0).getDate();
             for (let dia = 1; dia <= totalDias; dia++) {
@@ -359,59 +360,65 @@
         }
 
         function renderizarStats() {
-            const tabla = document.getElementById('tablaStats');
-            const stats = calcularGuardiasMes(state.fechaActual.getFullYear(), state.fechaActual.getMonth());
+            const tbody = document.getElementById('tablaStats');
+            if (!tbody) return;
 
-            tabla.innerHTML = CONFIG.empleados.map(emp => {
-                const numGuardias = stats[emp.id] || 0;
-                const numHoras = numGuardias * 24;
-                const esUsuario = emp.id === state.usuarioActualId;
+            const anio = state.fechaActual.getFullYear();
+            const mes = state.fechaActual.getMonth();
+            const stats = calcularGuardiasMes(anio, mes);
 
+            tbody.innerHTML = CONFIG.empleados.map(emp => {
+                const guardias = stats[emp.id] || 0;
+                const horas = guardias * 24;
+                const esSeleccionado = emp.id === state.usuarioActualId;
                 return `
-                    <tr class="${esUsuario ? 'bg-blue-50/70 font-bold text-blue-900' : 'hover:bg-slate-50'}">
+                    <tr class="${esSeleccionado ? 'bg-blue-50/80 font-bold text-blue-900' : 'hover:bg-slate-50'}">
                         <td class="p-2 flex items-center space-x-2">
-                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${emp.color}">${emp.iniciales}</span>
-                            <span>${emp.nombre}</span>
+                            <span class="w-2 h-2 rounded-full ${emp.color.split(' ')[0]}"></span>
+                            <span>${emp.nombre} (${emp.iniciales})</span>
                         </td>
-                        <td class="p-2 text-center font-semibold">${numGuardias}</td>
-                        <td class="p-2 text-right font-bold text-blue-600">${numHoras} h</td>
+                        <td class="p-2 text-center font-bold">${guardias}</td>
+                        <td class="p-2 text-right font-bold text-blue-600">${horas} h</td>
                     </tr>
                 `;
             }).join('');
         }
 
         function renderizarHistorial() {
-            const lista = document.getElementById('listaSolicitudes');
+            const contenedor = document.getElementById('listaSolicitudes');
+            if (!contenedor) return;
 
             if (state.solicitudes.length === 0) {
-                lista.innerHTML = `<p class="text-slate-400 text-center py-4">No hay solicitudes ni permutas registradas.</p>`;
+                contenedor.innerHTML = '<p class="text-slate-400 text-center py-4">No hay solicitudes de permuta registradas.</p>';
                 return;
             }
 
-            lista.innerHTML = state.solicitudes.map(s => {
-                const sol = CONFIG.empleados.find(e => e.id === s.solicitanteId);
-                const des = CONFIG.empleados.find(e => e.id === s.destinoId);
+            contenedor.innerHTML = state.solicitudes.slice().reverse().map(sol => {
+                const empOrigen = CONFIG.empleados.find(e => e.id === sol.origenId);
+                const empDestino = CONFIG.empleados.find(e => e.id === sol.destinoId);
                 const esAdmin = state.usuarioActualId === 'admin';
-                const soyDestino = s.destinoId === state.usuarioActualId;
+                const esDestino = sol.destinoId === state.usuarioActualId;
+                const pendiente = sol.estado === 'pendiente';
 
-                let estadoBadge = `<span class="bg-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Pendiente</span>`;
-                if (s.estado === 'aprobada') estadoBadge = `<span class="bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">Aprobada</span>`;
-                if (s.estado === 'rechazada') estadoBadge = `<span class="bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-full">Rechazada</span>`;
+                let badgeEstado = '';
+                if (sol.estado === 'pendiente') badgeEstado = '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">Pendiente</span>';
+                else if (sol.estado === 'aprobado') badgeEstado = '<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-semibold">Aprobado</span>';
+                else badgeEstado = '<span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-semibold">Rechazado</span>';
 
                 return `
-                    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                    <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                         <div class="flex justify-between items-center">
-                            <span class="font-bold text-slate-700">${sol?.nombre} ➔ ${des?.nombre}</span>
-                            ${estadoBadge}
+                            <span class="font-bold text-slate-700">${empOrigen?.nombre} ⇄ ${empDestino?.nombre}</span>
+                            ${badgeEstado}
                         </div>
-                        <div class="text-slate-600 text-[11px] space-y-0.5">
-                            <p><b>Cambia:</b> ${formatearFechaLarga(s.fechaSolicitante)} por ${formatearFechaLarga(s.fechaDestino)}</p>
-                            ${s.motivo ? `<p class="italic text-slate-500">"${s.motivo}"</p>` : ''}
+                        <div class="text-slate-600 space-y-0.5">
+                            <p><b>Cambio:</b> ${formatearFechaLarga(sol.fechaOrigen)} por ${formatearFechaLarga(sol.fechaDestino)}</p>
+                            ${sol.motivo ? `<p class="italic text-slate-500">"${sol.motivo}"</p>` : ''}
                         </div>
-                        ${s.estado === 'pendiente' && (soyDestino || esAdmin) ? `
+                        ${pendiente && (esDestino || esAdmin) ? `
                             <div class="flex space-x-2 pt-1">
-                                <button onclick="gestionarSolicitud('${s.id}', 'rechazada')" class="flex-1 py-1 rounded bg-red-100 hover:bg-red-200 text-red-700 font-bold">Rechazar</button>
-                                <button onclick="gestionarSolicitud('${s.id}', 'aprobada')" class="flex-1 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Aceptar</button>
+                                <button onclick="responderSolicitud('${sol.id}', false)" class="flex-1 py-1 rounded bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold">Rechazar</button>
+                                <button onclick="responderSolicitud('${sol.id}', true)" class="flex-1 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Aprobar</button>
                             </div>
                         ` : ''}
                     </div>
@@ -420,11 +427,13 @@
         }
 
         function actualizarBadgeNotificaciones() {
+            const badge = document.getElementById('badgeNotificaciones');
+            if (!badge) return;
+
             const pendientes = state.solicitudes.filter(s => 
                 s.estado === 'pendiente' && (s.destinoId === state.usuarioActualId || state.usuarioActualId === 'admin')
             ).length;
 
-            const badge = document.getElementById('badgeNotificaciones');
             if (pendientes > 0) {
                 badge.innerText = pendientes;
                 badge.classList.remove('hidden');
@@ -433,69 +442,8 @@
             }
         }
 
-        // Validación en Tiempo Real
-        function validarPermutaEnTiempoReal() {
-            const fechaSol = document.getElementById('fechaSolicitante').value;
-            const fechaDes = document.getElementById('fechaDestino').value;
-            const empDestinoId = parseInt(document.getElementById('empleadoDestino').value);
-
-            const errBox = document.getElementById('mensajeErrorValidacion');
-            const btn = document.getElementById('btnEnviarSolicitud');
-
-            errBox.classList.add('hidden');
-            btn.disabled = false;
-
-            if (fechaSol) {
-                const empSol = obtenerEmpleadoFecha(fechaSol);
-                if (empSol.id !== state.usuarioActualId) {
-                    errBox.innerText = `El ${formatearFechaCorta(fechaSol)} NO es tu guardia (le toca a ${empSol.nombre}).`;
-                    errBox.classList.remove('hidden');
-                    btn.disabled = true;
-                    return;
-                }
-            }
-
-            if (fechaDes && empDestinoId) {
-                const empDes = obtenerEmpleadoFecha(fechaDes);
-                if (empDes.id !== empDestinoId) {
-                    const empNombre = CONFIG.empleados.find(e => e.id === empDestinoId)?.nombre;
-                    errBox.innerText = `El ${formatearFechaCorta(fechaDes)} NO es guardia de ${empNombre} (le toca a ${empDes.nombre}).`;
-                    errBox.classList.remove('hidden');
-                    btn.disabled = true;
-                    return;
-                }
-            }
-        }
-
-        // Exportación Excel CSV
-        function exportarMesAExcel() {
-            const mesNombre = state.fechaActual.toLocaleDateString('es-ES', { month: 'long' });
-            const anio = state.fechaActual.getFullYear();
-            const mesNumero = state.fechaActual.getMonth();
-            const diasEnMes = new Date(anio, mesNumero + 1, 0).getDate();
-
-            let csv = `\uFEFFCuadrante de Guardias 24h - ${mesNombre.toUpperCase()} ${anio}\n\n`;
-            csv += `Dia;Guardia Asignada;Observaciones\n`;
-
-            for (let dia = 1; dia <= diasEnMes; dia++) {
-                const fechaStr = formatearFecha(new Date(anio, mesNumero, dia));
-                const emp = obtenerEmpleadoFecha(fechaStr);
-                const exc = state.excepciones[fechaStr];
-                csv += `${dia};${emp.nombre};${exc ? (exc.motivo || 'Ajuste') : 'Turno normal'}\n`;
-            }
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Guardias_${mesNombre}_${anio}.csv`;
-            link.click();
-        }
-
-        // Modales
-        function cerrarModal(idModal) {
-            const modal = document.getElementById(idModal);
-            if (modal) modal.classList.add('hidden');
+        function scrollAHistorial() {
+            document.getElementById('seccionHistorial')?.scrollIntoView({ behavior: 'smooth' });
         }
 
         function abrirModalSolicitudCambio() {
@@ -503,94 +451,129 @@
             if (select) {
                 select.innerHTML = CONFIG.empleados
                     .filter(e => e.id !== state.usuarioActualId)
-                    .map(e => `<option value="${e.id}">${e.nombre}</option>`)
+                    .map(e => `<option value="${e.id}">${e.nombre} (${e.iniciales})</option>`)
                     .join('');
             }
+
+            // Resetear inputs de fecha
             document.getElementById('fechaSolicitante').value = '';
             document.getElementById('fechaDestino').value = '';
             document.getElementById('motivoSolicitud').value = '';
-            
-            const modal = document.getElementById('modalSolicitud');
-            if (modal) modal.classList.remove('hidden');
-            validarPermutaEnTiempoReal();
+
+            document.getElementById('mensajeErrorValidacion')?.classList.add('hidden');
+            document.getElementById('modalSolicitud')?.classList.remove('hidden');
+        }
+
+        function cerrarModal(idModal) {
+            const modal = document.getElementById(idModal);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function validarPermutaEnTiempoReal() {
+            const fOrigen = document.getElementById('fechaSolicitante').value;
+            const destId = parseInt(document.getElementById('empleadoDestino').value);
+            const fDestino = document.getElementById('fechaDestino').value;
+            const msgBox = document.getElementById('mensajeErrorValidacion');
+            const btnSubmit = document.getElementById('btnEnviarSolicitud');
+
+            if (!fOrigen && !fDestino) {
+                if (msgBox) msgBox.classList.add('hidden');
+                if (btnSubmit) btnSubmit.disabled = false;
+                return true;
+            }
+
+            let error = null;
+
+            // Validar de forma estricta si la fecha elegida como propia realmente es guardia del usuario actual
+            if (fOrigen && state.usuarioActualId !== 'admin') {
+                const empOrigenReal = obtenerEmpleadoFecha(fOrigen);
+                if (empOrigenReal.id !== state.usuarioActualId) {
+                    const miUsuario = CONFIG.empleados.find(e => e.id === state.usuarioActualId);
+                    error = `El ${formatearFechaCorta(fOrigen)} no tienes guardia (${miUsuario?.iniciales}). Ese día le corresponde a ${empOrigenReal.nombre} (${empOrigenReal.iniciales}).`;
+                }
+            }
+
+            // Validar si la fecha del compañero le pertenece realmente al compañero seleccionado
+            if (!error && fDestino && destId) {
+                const empDestinoReal = obtenerEmpleadoFecha(fDestino);
+                const empSeleccionado = CONFIG.empleados.find(e => e.id === destId);
+                if (empDestinoReal.id !== destId) {
+                    error = `El ${formatearFechaCorta(fDestino)} no tiene guardia ${empSeleccionado?.nombre} (${empSeleccionado?.iniciales}). Le corresponde a ${empDestinoReal.nombre} (${empDestinoReal.iniciales}).`;
+                }
+            }
+
+            if (error) {
+                if (msgBox) {
+                    msgBox.innerText = error;
+                    msgBox.classList.remove('hidden');
+                }
+                if (btnSubmit) btnSubmit.disabled = true;
+                return false;
+            } else {
+                if (msgBox) msgBox.classList.add('hidden');
+                if (btnSubmit) btnSubmit.disabled = false;
+                return true;
+            }
         }
 
         function procesarSolicitudCambio(e) {
             e.preventDefault();
-            const fechaSolicitante = document.getElementById('fechaSolicitante').value;
-            const empDestinoId = parseInt(document.getElementById('empleadoDestino').value);
-            const fechaDestino = document.getElementById('fechaDestino').value;
-            const motivo = document.getElementById('motivoSolicitud').value.trim();
+            if (!validarPermutaEnTiempoReal()) return;
 
-            const nuevaSolicitud = {
-                id: 'sol_' + Date.now(),
-                solicitanteId: state.usuarioActualId,
-                destinoId: empDestinoId,
-                fechaSolicitante,
-                fechaDestino,
-                motivo,
-                estado: 'pendiente',
-                timestamp: new Date().toISOString()
+            const nuevaSol = {
+                id: Date.now().toString(),
+                origenId: state.usuarioActualId === 'admin' ? 1 : state.usuarioActualId,
+                fechaOrigen: document.getElementById('fechaSolicitante').value,
+                destinoId: parseInt(document.getElementById('empleadoDestino').value),
+                fechaDestino: document.getElementById('fechaDestino').value,
+                motivo: document.getElementById('motivoSolicitud').value,
+                estado: 'pendiente'
             };
 
-            state.solicitudes.unshift(nuevaSolicitud);
+            state.solicitudes.push(nuevaSol);
             guardarEstado();
             cerrarModal('modalSolicitud');
             renderizarApp();
         }
 
-        function gestionarSolicitud(solId, nuevoEstado) {
-            const index = state.solicitudes.findIndex(s => s.id === solId);
-            if (index !== -1) {
-                const sol = state.solicitudes[index];
-                sol.estado = nuevoEstado;
+        function responderSolicitud(idSol, aprobar) {
+            const sol = state.solicitudes.find(s => s.id === idSol);
+            if (!sol) return;
 
-                if (nuevoEstado === 'aprobada') {
-                    state.excepciones[sol.fechaSolicitante] = {
-                        empleadoId: sol.destinoId,
-                        motivo: `Permuta aprobada`
-                    };
-                    state.excepciones[sol.fechaDestino] = {
-                        empleadoId: sol.solicitanteId,
-                        motivo: `Permuta aprobada`
-                    };
-                }
+            sol.estado = aprobar ? 'aprobado' : 'rechazado';
 
-                guardarEstado();
-                renderizarApp();
+            if (aprobar) {
+                state.excepciones[sol.fechaOrigen] = { empleadoId: sol.destinoId, motivo: 'Permuta aprobada' };
+                state.excepciones[sol.fechaDestino] = { empleadoId: sol.origenId, motivo: 'Permuta aprobada' };
             }
+
+            guardarEstado();
+            renderizarApp();
         }
 
         function abrirModalEditarExcepcion(fechaStr) {
-            document.getElementById('fechaExcepcion').value = fechaStr;
-            document.getElementById('subtituloExcepcion').innerText = `Ajuste manual para ${formatearFechaLarga(fechaStr)}`;
-            
             const empActual = obtenerEmpleadoFecha(fechaStr);
+            document.getElementById('fechaExcepcion').value = fechaStr;
+            document.getElementById('subtituloExcepcion').innerText = `Ajuste para ${formatearFechaLarga(fechaStr)}`;
+            
             const select = document.getElementById('selectEmpleadoExcepcion');
             if (select) {
                 select.innerHTML = CONFIG.empleados.map(e => `
-                    <option value="${e.id}" ${e.id === empActual.id ? 'selected' : ''}>${e.nombre}</option>
+                    <option value="${e.id}" ${e.id === empActual.id ? 'selected' : ''}>${e.nombre} (${e.iniciales})</option>
                 `).join('');
             }
             
-            const exc = state.excepciones[fechaStr];
-            document.getElementById('notaExcepcion').value = exc ? (exc.motivo || '') : '';
-
-            const modal = document.getElementById('modalExcepcion');
-            if (modal) modal.classList.remove('hidden');
+            document.getElementById('notaExcepcion').value = state.excepciones[fechaStr]?.motivo || '';
+            document.getElementById('modalExcepcion').classList.remove('hidden');
         }
 
         function guardarExcepcion(e) {
             e.preventDefault();
             const fechaStr = document.getElementById('fechaExcepcion').value;
             const empId = parseInt(document.getElementById('selectEmpleadoExcepcion').value);
-            const motivo = document.getElementById('notaExcepcion').value.trim();
+            const nota = document.getElementById('notaExcepcion').value;
 
-            state.excepciones[fechaStr] = {
-                empleadoId: empId,
-                motivo: motivo || 'Ajuste de administración'
-            };
-
+            state.excepciones[fechaStr] = { empleadoId: empId, motivo: nota || 'Ajuste Manual Admin' };
             guardarEstado();
             cerrarModal('modalExcepcion');
             renderizarApp();
@@ -604,22 +587,59 @@
             renderizarApp();
         }
 
-        function scrollAHistorial() {
-            document.getElementById('seccionHistorial')?.scrollIntoView({ behavior: 'smooth' });
+        function exportarMesAExcel() {
+            const anio = state.fechaActual.getFullYear();
+            const mesNumero = state.fechaActual.getMonth();
+            const mesNombre = state.fechaActual.toLocaleDateString('es-ES', { month: 'long' });
+
+            let csvContent = `data:text/csv;charset=utf-8,\uFEFF`;
+            csvContent += `INFORME MENSUAL DE GUARDIAS DE 24H - ${mesNombre.toUpperCase()} ${anio}\n\n`;
+
+            csvContent += `CUADRANTE DIARIO\n`;
+            csvContent += `Fecha,Dia de la semana,Guardia Asignada,Observaciones\n`;
+
+            const diasEnMes = new Date(anio, mesNumero + 1, 0).getDate();
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(anio, mesNumero, dia);
+                const fechaStr = formatearFecha(fecha);
+                const emp = obtenerEmpleadoFecha(fechaStr);
+                const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'long' });
+                const exc = state.excepciones[fechaStr];
+                const obs = exc ? (exc.motivo || 'Ajuste / Permuta') : 'Turno Normal';
+
+                csvContent += `"${fechaStr}","${diaSemana}","${emp.nombre} (${emp.iniciales})","${obs}"\n`;
+            }
+
+            csvContent += `\nRESUMEN DE GUARDIAS Y HORAS TRABAJADAS\n`;
+            csvContent += `Companero,Total Guardias (24h),Total Horas Trabajadas\n`;
+
+            const stats = calcularGuardiasMes(anio, mesNumero);
+            CONFIG.empleados.forEach(emp => {
+                const numGuardias = stats[emp.id] || 0;
+                csvContent += `"${emp.nombre} (${emp.iniciales})",${numGuardias},${numGuardias * 24}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Guardias_24h_${mesNombre}_${anio}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
-        // Listener de Selector de Usuario
+        // Listeners de Eventos
         document.getElementById('userSelector').addEventListener('change', (e) => {
             const val = e.target.value;
             state.usuarioActualId = val === 'admin' ? 'admin' : parseInt(val);
             renderizarApp();
         });
 
-        // Inicialización
-        window.addEventListener('DOMContentLoaded', () => {
+        // Inicializar App al cargar ventana
+        window.onload = function() {
             cargarEstado();
             renderizarApp();
-        });
+        };
     </script>
 </body>
 </html>
