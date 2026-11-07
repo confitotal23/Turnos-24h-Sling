@@ -327,7 +327,6 @@
                 const tieneExcepcion = !!state.excepciones[fechaStr];
 
                 const esAdmin = state.usuarioActualId === 'admin';
-                const esMiGuardia = emp.id === state.usuarioActualId;
 
                 grid.innerHTML += `
                     <div onclick="${esAdmin ? `abrirModalEditarExcepcion('${fechaStr}')` : ''}" 
@@ -338,7 +337,6 @@
                         </div>
                         <div class="text-center my-auto">
                             <span class="font-black text-xs sm:text-sm block">${emp.iniciales}</span>
-                            <span class="text-[9px] sm:text-[10px] truncate block opacity-90">${emp.nombre.split(' ')[0]}</span>
                         </div>
                     </div>
                 `;
