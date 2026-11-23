@@ -331,7 +331,7 @@
 
                 grid.innerHTML += `
                     <div onclick="${esAdmin ? `abrirModalEditarExcepcion('${fechaStr}')` : ''}" 
-                         class="h-16 sm:h-20 p-1 rounded-xl border flex flex-col justify-between transition relative ${esHoy ? 'ring-2 ring-blue-600' : ''} ${esUsuarioSeleccionado ? 'ring-2 ring-blue-500 font-bold scale-[1.02] shadow-sm' : ''} ${emp.color} ${esAdmin ? 'cursor-pointer hover:opacity-80' : ''}">
+                         class="h-16 sm:h-20 p-1 rounded-xl border flex flex-col justify-between transition relative ${esHoy ? 'ring-2 ring-red-600 shadow-md' : ''} ${esUsuarioSeleccionado ? 'ring-2 ring-blue-500 font-bold scale-[1.02] shadow-sm' : ''} ${emp.color} ${esAdmin ? 'cursor-pointer hover:opacity-80' : ''}">
                         <div class="flex justify-between items-center text-[10px] sm:text-xs font-bold">
                             <span>${dia}</span>
                             ${tieneExcepcion ? '<span class="text-amber-600 font-extrabold">*</span>' : ''}
